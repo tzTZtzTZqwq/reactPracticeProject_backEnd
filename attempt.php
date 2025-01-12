@@ -40,9 +40,9 @@ function validateRequest($sqlConn, $ip_address){
         }
     }
 
-    if ($validCount >= 4) {
+    if ($validCount >= 10) {
         ajaxResult([
-            'output' => "Yor submitted too frequently, try again later",
+            'output' => "You submitted too frequently, try again later",
             'status' => 0
         ]);
     }
@@ -53,6 +53,9 @@ function validateRequest($sqlConn, $ip_address){
 }
 
 if ($_SERVER['REQUEST_METHOD'] == 'POST') {
+    if (isset($_SERVER["HTTP_CF_CONNECTING_IP"])) {
+        $_SERVER['REMOTE_ADDR'] = $_SERVER["HTTP_CF_CONNECTING_IP"];
+    }
     $ip_address = $_SERVER['REMOTE_ADDR'];
     $sqlConn = connectToSql();
     validateRequest($sqlConn, $ip_address);
@@ -89,6 +92,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     $run_cmd = "/www/server/java/jdk-20.0.2/bin/javac 2>&1 ".$temp_source_file_path." -d ".$temp_file_path;
     exec($run_cmd,$output,$error);
     if($error!=0){//compile error
+        $output[0] = preg_replace('/^.*\//', '', $output[0]);
         ajaxResult([
         'output' => implode("\n",$output),
         'status' => 1
@@ -148,7 +152,7 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     
     ajaxResult([
         'output' => 
-        $output_content.$output
+        ($error == 0)?$output_content:(is_array($output)?implode("\n",$output):$output)
         ."\n-----\ntime elapsed:".$timeOutput
         ."\nmemory used:".$memoryOutput."KB"  ,
         'status' => $error . " ia" . is_array($output)
